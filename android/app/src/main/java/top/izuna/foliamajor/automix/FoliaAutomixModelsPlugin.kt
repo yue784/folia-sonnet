@@ -680,7 +680,8 @@ class FoliaAutomixModelsPlugin : Plugin() {
                 val file = AutomixModels.ensureLocal(context, AutomixModels.BEAT_THIS)
                 BeatThisRunner.ensureLoaded(file)
                 val started = System.currentTimeMillis()
-                val result = BeatThisRunner.analyze(mono) { cancelRequested.get() }
+                // 命名参数：末尾那个 lambda 是 onChunk，不是 cancelled。
+                val result = BeatThisRunner.analyze(mono, cancelled = { cancelRequested.get() })
                 android.util.Log.i(
                     "Automix",
                     "beat_this: ${mono.size} 样本 -> ${result.beats.size} 个拍点，" +
