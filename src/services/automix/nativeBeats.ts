@@ -35,6 +35,14 @@ export type NativeBeatGrid = {
 
 type NativeBeatsPlugin = {
     analyzeBeats(options: { samples: string }): Promise<NativeBeatGrid>;
+    /**
+     * 同一套推理，音频由原生按地址自己取（Kotlin 侧的 analyzeBeatsFromUrl）。
+     *
+     * 整首歌的 PCM 走桥是过不去的：一首四分钟的歌 22050Hz 单声道是 21MB，
+     * base64 之后 28MB，比 FoliaNativePlugin 的响应上限大一个数量级（#261/#262）。
+     * 能给出路径或地址时一律走这条，`analyzeBeats` 只留给「PCM 已经在手里」的短片段。
+     */
+    analyzeBeatsFromUrl?(options: { url: string }): Promise<NativeBeatGrid>;
 };
 
 const NativeBeats = registerPlugin<NativeBeatsPlugin>('FoliaAutomixModels');
@@ -124,4 +132,24 @@ export const analyzeBeatsNative = async (samples: Float32Array): Promise<NativeB
         return { beats: [], fps: BEAT_THIS_SAMPLE_RATE / 441, frames: 0 };
     }
     return NativeBeats.analyzeBeats({ samples: toBase64(samples) });
+};
+
+/**
+ * 分析一首歌的节拍，**音频由原生按地址自己解码**（本地绝对路径或 http(s) 地址）。
+ *
+ * 与 `analyzeBeats` 的区别只在音频怎么过去：那条路把整首歌的 PCM 编成 base64 塞进
+ * 调用参数，四分钟的歌就是 28MB，桥和堆都撑不住 —— 真机上表现是分析永远失败、
+ * 智能动感一直没有拍点。这条路只传一个字符串，原生用 MediaExtractor 直接解码。
+ */
+export const analyzeBeatsNativeFromUrl = async (url: string): Promise<NativeBeatGrid> => {
+    if (!isNativeBeatAnalysisAvailable()) {
+        throw new Error('原生节拍分析只支持安卓 App');
+    }
+    if (!url) throw new Error('缺少音频地址');
+    const plugin = NativeBeats as NativeBeatsPlugin;
+    if (typeof plugin.analyzeBeatsFromUrl !== 'function') {
+        // 旧 APK 的插件没有这个方法：报错而不是退回 base64，后者在这里只会把进程拖死。
+        throw new Error('当前安装包的原生插件不支持按地址分析节拍，请更新 APK');
+    }
+    return plugin.analyzeBeatsFromUrl({ url });
 };

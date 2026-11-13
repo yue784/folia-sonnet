@@ -13,7 +13,7 @@
 // modelAvailability 一致，所以调用点不需要区分平台。
 
 import { registerPlugin, type PluginListenerHandle } from '@capacitor/core';
-import { isCapacitorAndroid } from '../../platform/runtime';
+import { isAndroidAppShell } from '../../platform/runtime';
 
 /** 两个模型的标识，与 Kotlin 侧的常量一致。 */
 export type AutomixModelName = 'beat_this' | 'htdemucs';
@@ -65,8 +65,14 @@ type NativeAutomixPlugin = {
 
 const NativeAutomix = registerPlugin<NativeAutomixPlugin>('FoliaAutomixModels');
 
-/** 这个运行环境有没有原生模型能力（目前只有安卓 App 有）。 */
-export const isNativeModelsAvailable = (): boolean => isCapacitorAndroid();
+/**
+ * 这个运行环境有没有原生模型能力（目前只有安卓 App 有）。
+ *
+ * 用 isAndroidAppShell 而不是 isCapacitorAndroid：后者要等 Capacitor 的桥起来
+ * 才有值，而首帧那一刻的「有没有模型」会被界面读到（智能动感的特效行、
+ * 分轨开关都要在渲染时同步问一句）。用后者答错的方向是「整个功能消失」。
+ */
+export const isNativeModelsAvailable = (): boolean => isAndroidAppShell();
 
 /*
  * 一个同步可读的「哪些模型能跑」快照。
@@ -77,6 +83,13 @@ export const isNativeModelsAvailable = (): boolean => isCapacitorAndroid();
  */
 let present: Record<AutomixModelName, boolean> = { beat_this: false, htdemucs: false };
 let readyDir: string | null = null;
+/*
+ * 权重是否随包内置（原生 getStatus 的 `bundled`）。
+ *
+ * 「还没落盘」和「这个包里根本没有」是两件事：前者第一次用到时拷过来就好，
+ * 后者怎么点都没用。界面上的「缺少模型」只在后者出现，所以要把这个值记下来。
+ */
+let bundled = isNativeModelsAvailable();
 
 const listeners = new Set<() => void>();
 
@@ -94,11 +107,25 @@ export const modelsPresent = (): Record<AutomixModelName, boolean> => present;
 /** 这个模型现在能不能跑 —— 权重在不在私有目录就是全部的问题。 */
 export const modelCanRun = (name: AutomixModelName): boolean => present[name];
 
+/**
+ * 这个模型最终能不能跑：已经落盘，或者权重就在包里、第一次用到时拷得出来。
+ *
+ * 与 `modelCanRun` 分开：那个是同步的「此刻」，这个给界面判断要不要显示
+ * 「本次安装缺少模型」—— 安卓内置权重的构建里，首次启动时它仍然是 true。
+ */
+export const modelWillBeAvailable = (name: AutomixModelName): boolean => (
+    present[name] || (bundled && isNativeModelsAvailable())
+);
+
 /** 模型落地的目录（给设置页显示）。 */
 export const modelsDirectory = (): string | null => readyDir;
 
-const publish = (next: Record<AutomixModelName, boolean>): void => {
-    if (next.beat_this === present.beat_this && next.htdemucs === present.htdemucs) return;
+const publish = (next: Record<AutomixModelName, boolean>, nextBundled = bundled): void => {
+    const sameModels = next.beat_this === present.beat_this && next.htdemucs === present.htdemucs;
+    // `bundled` 也是快照的一部分（modelWillBeAvailable 读它）：只按 present 判「没变」，
+    // 首次启动就会漏掉一次通知，界面停在「缺少模型」上，直到别的什么事再触发一次刷新。
+    if (sameModels && nextBundled === bundled) return;
+    bundled = nextBundled;
     present = next;
     for (const listener of listeners) listener();
 };
@@ -114,12 +141,13 @@ export const refreshModelAvailability = async (): Promise<Record<AutomixModelNam
     try {
         const status = await NativeAutomix.getStatus();
         readyDir = status.dir ?? null;
+        const nextBundled = status.bundled === true;
         const next: Record<AutomixModelName, boolean> = { beat_this: false, htdemucs: false };
         for (const model of status.models ?? []) {
             if (model.name === 'beat_this') next.beat_this = model.ready === true;
             if (model.name === 'htdemucs') next.htdemucs = model.ready === true;
         }
-        publish(next);
+        publish(next, nextBundled);
     } catch (error) {
         console.warn('[Automix] 读取模型状态失败', error);
     }
@@ -138,6 +166,15 @@ export const fetchModelsStatus = async (): Promise<AutomixModelsStatus | null> =
 };
 
 /**
+ * 一次安装只跑一次。
+ *
+ * 一条拍点分析、一个分轨段、两处界面可能在同一刻各自发现「模型还没就绪」，
+ * 各自发一次 download —— 原生侧是单线程队列，后两次会把同一份 100MB 再拷一遍，
+ * 用户等三倍的时间。同一个模型共用同一个 Promise。
+ */
+const installing = new Map<AutomixModelName, Promise<boolean>>();
+
+/**
  * 让某个模型可用。内置的权重，这里是「从 assets 拷到私有目录」。
  *
  * 返回 false 表示失败（空间不足、assets 缺失等），调用方应当把错误显示出来
@@ -145,14 +182,23 @@ export const fetchModelsStatus = async (): Promise<AutomixModelsStatus | null> =
  */
 export const installModel = async (name: AutomixModelName): Promise<boolean> => {
     if (!isNativeModelsAvailable()) return false;
-    try {
-        const result = await NativeAutomix.download({ name });
-        await refreshModelAvailability();
-        return result.ok === true;
-    } catch (error) {
-        console.warn(`[Automix] 安装 ${name} 失败`, error);
-        return false;
-    }
+    if (present[name]) return true;
+    const running = installing.get(name);
+    if (running) return running;
+    const run = (async () => {
+        try {
+            const result = await NativeAutomix.download({ name });
+            await refreshModelAvailability();
+            return result.ok === true;
+        } catch (error) {
+            console.warn(`[Automix] 安装 ${name} 失败`, error);
+            return false;
+        } finally {
+            installing.delete(name);
+        }
+    })();
+    installing.set(name, run);
+    return run;
 };
 
 /** 删掉私有目录里的副本，腾出空间。下次用到会重新落盘。 */
@@ -241,8 +287,10 @@ export type NativeStems = {
  * @param url 本地绝对路径，或 http(s) 地址。
  */
 export const separateStemsNativeFromUrl = async (url: string): Promise<NativeStems | null> => {
-    if (!isNativeModelsAvailable() || !present.htdemucs) return null;
+    if (!isNativeModelsAvailable()) return null;
     if (!url) return null;
+    // 首次用到才把权重从 assets 拷出来：界面上的开关不等这一次拷贝。
+    if (!present.htdemucs && !(await installModel('htdemucs'))) return null;
     try {
         const plugin = NativeAutomix as unknown as {
             separateStemsFromUrl(options: { url: string }): Promise<{
@@ -278,8 +326,10 @@ export const separateStemsNative = async (
     left: Float32Array,
     right: Float32Array,
 ): Promise<NativeStems | null> => {
-    if (!isNativeModelsAvailable() || !present.htdemucs) return null;
+    if (!isNativeModelsAvailable()) return null;
     if (left.length !== right.length || left.length === 0) return null;
+    // 首次用到才落盘（约 108MB）；已经就绪就不重复问。
+    if (!present.htdemucs && !(await installModel('htdemucs'))) return null;
     try {
         const result = await NativeAutomix.separateStems({
             left: encodeChunk(left),
@@ -301,3 +351,17 @@ export const separateStemsNative = async (
         return null;
     }
 };
+
+/*
+ * 启动时问一次原生：模型在不在。
+ *
+ * 这份快照是同步读的（modelCanRun），而它原来只在用户打开设置或分轨界面时才刷新。
+ * 于是刚启动的那几分钟里，权重明明在包里，智能动感的每个特效行都在说「缺少模型」，
+ * 第一次分析也要多绕一次「先失败、再安装」。
+ *
+ * 桥可能还没起来（Capacitor 的 deviceready 晚于首帧），失败时 refresh 保留上一次的
+ * 答案，不抛错；调用方在真正要用之前还会再问一次（beatGrid 的 installModel）。
+ */
+if (isNativeModelsAvailable()) {
+    void refreshModelAvailability();
+}

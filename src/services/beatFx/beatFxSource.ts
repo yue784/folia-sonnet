@@ -15,6 +15,7 @@ import { getPrefetchedData, isUrlValid } from '../prefetchService';
 import { isNativeModelsAvailable } from '../automix/nativeModels';
 import { cacheNativeMediaFromUrl, hasNativeMediaCache, readNativeMediaCacheUrl } from '../mediaCacheStore';
 import { getSongResourceCacheKey } from '../onlineMusic/resourceKeys';
+import { nativeAudioUrlForRef } from '../nativeLocalMusic';
 import { getPlaybackSourceRef } from '../../utils/appPlaybackGuards';
 import type { PlaybackRepresentation } from '../../types/playbackRecovery';
 
@@ -185,8 +186,12 @@ const resolveTrackBeats = async (
         return read;
     };
     const readMid = async () => {
-        // Asked before the read and the decode, which are seconds of work for nobody without one.
-        if (typeof navigator === 'undefined' || !('gpu' in navigator)) {
+        /*
+         * 没有 WebGPU 就不解码 —— 除了安卓：那边的原生推理要的是一段 PCM 的退路，
+         * 而它本来就不靠 GPU（权重和推理都在原生侧）。这条判断写在这里会把原生
+         * 这条唯一的退路也一起挡掉，真机上就是「设置里开着，画面上什么都不动」。
+         */
+        if (!isNativeModelsAvailable() && (typeof navigator === 'undefined' || !('gpu' in navigator))) {
             note = 'no WebGPU in this renderer';
             return null;
         }
@@ -199,9 +204,32 @@ const resolveTrackBeats = async (
         }
         return toMidSide(buffer).mid;
     };
+    /*
+     * 安卓原生推理的音频地址：给地址，整首歌就不过桥。
+     *
+     * 本地曲目走原生那台 127.0.0.1 的音频服务；在线曲目先落到原生媒体缓存，再给
+     * 那份的回环地址 —— 直接把裸的远端地址交过去，很多平台会因为缺 Referer/Cookie 拒绝。
+     * 都拿不到时返回 null，调用方退回「JS 解码 + 传样本」。
+     */
+    const nativeSourceUrl = async (): Promise<string | null> => {
+        if (!isNativeModelsAvailable()) return null;
+        const ref = (song as { nativeAudioRef?: string }).nativeAudioRef;
+        if (ref) {
+            const localUrl = await nativeAudioUrlForRef(ref);
+            if (localUrl) return localUrl;
+        }
+        const prefetched = getPrefetchedData(song);
+        const url = prefetched?.audioUrl;
+        if (!url || url === 'CACHED_IN_DB' || !isUrlValid(prefetched.audioUrlFetchedAt) || !/^https?:/.test(url)) return null;
+        if (!await hasNativeMediaCache()) return null;
+        const cacheKey = getSongResourceCacheKey('audio', song);
+        const stored = await cacheNativeMediaFromUrl(cacheKey, url, MAX_STREAM_CACHE_BYTES, song.durationMs);
+        if (!stored) return null;
+        return readNativeMediaCacheUrl(cacheKey);
+    };
     try {
         // The picture on screen waits on these: ahead of automix's background profiles on the GPU.
-        grid = await getTrackBeatGrid(key, readMid, { storedOnly, urgency: 'onScreen' });
+        grid = await getTrackBeatGrid(key, readMid, { storedOnly, urgency: 'onScreen', nativeSourceUrl });
     } catch (error) {
         // A throw here (a cache read, a worker, a GPU device lost mid-run) is "no beats" like any
         // other: answered, so the caller's frame falls back, and not remembered, so a later play retries.
