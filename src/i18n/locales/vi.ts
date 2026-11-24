@@ -1917,6 +1917,10 @@ export default {
                 "title": "Hiệu ứng thị giác: Tilt",
                 "description": "Chuyển sang hiệu ứng Tilt"
             },
+            "visualizer-phigroslyrics": {
+                "title": "Hiệu ứng thị giác: Lời Phigros",
+                "description": "Chuyển sang kiểu lời từng chữ ghép với nền Phigros"
+            },
             "visualizer-claddagh": {
                 "title": "Hiệu ứng thị giác: Claddagh",
                 "description": "Chuyển sang hiệu ứng Claddagh"
@@ -2000,6 +2004,10 @@ export default {
             "background-nomand": {
                 "title": "Nền: Nomand",
                 "description": "Chuyển sang nền hiệu ứng ảnh Paper"
+            },
+            "background-phigros": {
+                "title": "Nền: Phigros",
+                "description": "Chuyển nền sang biểu đồ nốt rơi kiểu Phigros"
             },
             "background-latent": {
                 "title": "Nền: Latent",
@@ -2406,6 +2414,7 @@ export default {
         "visualizerTilt": "Tilt",
         "visualizerCladdagh": "Claddagh",
         "visualizerDiorama": "Diorama",
+        "visualizerPhigrosLyrics": "Lời Phigros",
         "visualizerPendolo": "Pendolo",
         "visualizerSonnet": "Sonnet",
         "visualizerTempera": "Tempera",
@@ -4981,6 +4990,7 @@ export default {
         "visualizerBackgroundModeLatent": "Latent",
         "visualizerBackgroundModeUrl": "Embed",
         "visualizerBackgroundModeSora": "Sora",
+        "visualizerBackgroundModePhigros": "Phigros",
         "urlBackgroundSettings": "Nền nhúng",
         "urlBackgroundSettingsDesc": "Hiển thị trang web làm nền trình phát. Lưu ý: một số trang web chặn nhúng vào iframe và có thể không hiển thị.",
         "urlBackgroundNotePlaceholder": "Ghi chú (dễ nhận biết)",
