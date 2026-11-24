@@ -1917,6 +1917,10 @@ export default {
                 "title": "Visualizer: Tilt",
                 "description": "Alihkan ke visualizer tilt"
             },
+            "visualizer-phigroslyrics": {
+                "title": "Visualizer: Lirik Phigros",
+                "description": "Alihkan ke gaya lirik kata demi kata yang cocok dengan latar Phigros"
+            },
             "visualizer-claddagh": {
                 "title": "Visualizer: Claddagh",
                 "description": "Alihkan ke visualizer Claddagh"
@@ -2000,6 +2004,10 @@ export default {
             "background-nomand": {
                 "title": "Latar: Nomand",
                 "description": "Alihkan latar ke efek gambar kertas"
+            },
+            "background-phigros": {
+                "title": "Latar: Phigros",
+                "description": "Alihkan latar ke bagan not jatuh bergaya Phigros"
             },
             "background-latent": {
                 "title": "Latar: Latent",
@@ -2406,6 +2414,7 @@ export default {
         "visualizerTilt": "Tilt",
         "visualizerCladdagh": "Claddagh",
         "visualizerDiorama": "Diorama",
+        "visualizerPhigrosLyrics": "Lirik Phigros",
         "visualizerPendolo": "Pendolo",
         "visualizerSonnet": "Sonnet",
         "visualizerTempera": "Tempera",
@@ -4944,6 +4953,7 @@ export default {
         "visualizerBackgroundModeLatent": "Latent",
         "visualizerBackgroundModeUrl": "Tanam",
         "visualizerBackgroundModeSora": "Sora",
+        "visualizerBackgroundModePhigros": "Phigros",
         "urlBackgroundSettings": "Latar Belakang Tertanam",
         "urlBackgroundSettingsDesc": "Tampilkan halaman web sebagai latar belakang pemutar. Catatan: beberapa situs web memblokir embedding dalam iframe dan mungkin tidak ditampilkan.",
         "urlBackgroundNotePlaceholder": "Catatan (untuk identifikasi mudah)",
