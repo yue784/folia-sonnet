@@ -81,6 +81,7 @@ const MODE_NAMES: Record<string, string> = {
     kinetic: '文字PV',
     metaphor: '隐喻',
     blank: '无歌词',
+    phigroslyrics: '谱面歌词',
 };
 
 /** i18n keys for the UI. `cadenza` is spelled `Cadenze` in the locale files. */
@@ -106,6 +107,7 @@ const MODE_LABEL_KEYS: Record<string, string> = {
     kinetic: 'ui.visualizerKinetic',
     metaphor: 'ui.visualizerMetaphor',
     blank: 'ui.visualizerBlank',
+    phigroslyrics: 'ui.visualizerPhigrosLyrics',
 };
 
 export type DirectorParamSpec =
@@ -411,6 +413,7 @@ export const MODE_PARAMS: Record<string, DirectorModeSpec> = {
     // 内建清单里有它，`isKnownDirectorMode` 就会放行，所以这里必须有一格空的，
     // 否则「AI 选了提示词却拿不到任何参数」是唯一没有登记的模式。与 still 同形。
     prompt: { setter: null, params: {} },
+    phigroslyrics: { setter: null, params: {} },
     // 无歌词同样没有参数：它只有外壳，不画任何歌词元素，AI 无处着手。与 still 同形。
     blank: { setter: null, params: {} },
 };
