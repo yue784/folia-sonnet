@@ -31,6 +31,7 @@ describe('visualizer registry', () => {
             'partita',
             'kinetic',
             'fume',
+            'phigroslyrics',
             'tilt',
             'claddagh',
             'monet',
