@@ -1917,6 +1917,10 @@ export default {
                 "title": "Visualizer: Tilt",
                 "description": "Switch to tilt visualizer"
             },
+            "visualizer-phigroslyrics": {
+                "title": "Visualizer: Phigros Lyrics",
+                "description": "Switch to the word-by-word lyric style that pairs with the Phigros background"
+            },
             "visualizer-claddagh": {
                 "title": "Visualizer: Claddagh",
                 "description": "Switch to Claddagh visualizer"
@@ -2000,6 +2004,10 @@ export default {
             "background-nomand": {
                 "title": "Background: Nomand",
                 "description": "Switch background to Paper image effects"
+            },
+            "background-phigros": {
+                "title": "Background: Phigros",
+                "description": "Switch background to the Phigros-style falling-note chart"
             },
             "background-latent": {
                 "title": "Background: Latent",
@@ -2406,6 +2414,7 @@ export default {
         "visualizerTilt": "Tilt",
         "visualizerCladdagh": "Claddagh",
         "visualizerDiorama": "Diorama",
+        "visualizerPhigrosLyrics": "Phigros Lyrics",
         "visualizerPendolo": "Pendolo",
         "visualizerSonnet": "Sonnet",
         "visualizerTempera": "Tempera",
@@ -4981,6 +4990,7 @@ export default {
         "visualizerBackgroundModeLatent": "Latent",
         "visualizerBackgroundModeUrl": "Embed",
         "visualizerBackgroundModeSora": "Sora",
+        "visualizerBackgroundModePhigros": "Phigros",
         "urlBackgroundSettings": "Embedded Background",
         "urlBackgroundSettingsDesc": "Display a webpage as the player background. Note: some websites block being embedded in an iframe and may not display.",
         "urlBackgroundNotePlaceholder": "Note (for easy identification)",
