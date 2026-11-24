@@ -17,6 +17,7 @@ describe('visualizer background registry', () => {
             'monet',
             'nomand',
             'latent',
+            'phigros',
             'url',
             // fork 自有：MV（画面垫在歌词下面；总开关见 BilibiliMvLayer）
             'mv',
