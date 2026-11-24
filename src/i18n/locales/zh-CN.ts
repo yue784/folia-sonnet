@@ -1933,6 +1933,10 @@ export default {
                 "title": "可视化：倾诉",
                 "description": "切换到倾诉可视化"
             },
+            "visualizer-phigroslyrics": {
+                "title": "可视化：谱面歌词",
+                "description": "切换到配合谱面背景的逐字歌词样式"
+            },
             "visualizer-claddagh": {
                 "title": "可视化：回环",
                 "description": "切换到回环可视化"
@@ -2016,6 +2020,10 @@ export default {
             "background-nomand": {
                 "title": "背景切换到漫游",
                 "description": "切换到 Paper 图片效果背景"
+            },
+            "background-phigros": {
+                "title": "背景切换到谱面",
+                "description": "切换到 Phigros 风格的下落音符谱面背景"
             },
             "background-latent": {
                 "title": "背景切换到隐现",
@@ -2422,6 +2430,7 @@ export default {
         "visualizerTilt": "倾诉",
         "visualizerCladdagh": "回环",
         "visualizerDiorama": "镜台",
+        "visualizerPhigrosLyrics": "谱面歌词",
         "visualizerPendolo": "时计",
         "visualizerSonnet": "商籁",
         "visualizerTempera": "凝彩",
@@ -5061,6 +5070,7 @@ export default {
         "visualizerBackgroundModeLatent": "隐现",
         "visualizerBackgroundModeUrl": "嵌入",
         "visualizerBackgroundModeSora": "空",
+        "visualizerBackgroundModePhigros": "谱面",
         "visualizerBackgroundModeParticles": "粒子",
         "visualizerBackgroundModeSonic": "音域回响",
         "visualizerBackgroundModeMv": "MV",
